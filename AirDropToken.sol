@@ -1,10 +1,12 @@
+//SPDX-License-Identifier: Unlicensed
+
 /**
  *   Merkle Air-Drop Token
  *
  *   See: https://blog.ricmoo.com/merkle-air-drops-e6406945584d
  */
 
-pragma solidity ^0.4.17;
+pragma solidity ^0.8.4;
 
 contract AirDropToken {
 
@@ -24,40 +26,40 @@ contract AirDropToken {
 
     mapping (uint256 => uint256) _redeemed;
 
-    function AirDropToken(string name, string symbol, uint8 decimals, bytes32 rootHash, uint256 premine) public {
-        _name = name;
-        _symbol = symbol;
-        _decimals = decimals;
-        _rootHash = rootHash;
+    constructor(string memory name_, string memory symbol_, uint8 decimals_, bytes32 rootHash_, uint256 premine) {
+        _name = name_;
+        _symbol = symbol_;
+        _decimals = decimals_;
+        _rootHash = rootHash_;
 
         if (premine > 0) {
             _balances[msg.sender] = premine;
             _totalSupply = premine;
-            Transfer(0, msg.sender, premine);
+            emit Transfer(address(0), msg.sender, premine);
         }
     }
 
-    function name() public constant returns (string name) {
+    function name() public view returns(string memory) {
         return _name;
     }
 
-    function symbol() public constant returns (string symbol) {
+    function symbol() public view returns(string memory) {
         return _symbol;
     }
 
-    function decimals() public constant returns (uint8 decimals) {
+    function decimals() public view returns (uint8) {
         return _decimals;
     }
 
-    function totalSupply() public constant returns (uint256 totalSupply) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(address tokenOwner) public constant returns (uint256 balance) {
+    function balanceOf(address tokenOwner) public view returns (uint256) {
          return _balances[tokenOwner];
     }
 
-    function allowance(address tokenOwner, address spender) public constant returns (uint256 remaining) {
+    function allowance(address tokenOwner, address spender) public view returns (uint256) {
         return _allowed[tokenOwner][spender];
     }
 
@@ -67,7 +69,7 @@ contract AirDropToken {
         _balances[msg.sender] -= amount;
         _balances[to] += amount;
 
-        Transfer(msg.sender, to, amount);
+        emit Transfer(msg.sender, to, amount);
 
         return true;
     }
@@ -82,7 +84,7 @@ contract AirDropToken {
         _allowed[from][msg.sender] -= amount;
         _balances[to] += amount;
 
-        Transfer(from, to, amount);
+        emit Transfer(from, to, amount);
 
         return true;
     }
@@ -90,18 +92,18 @@ contract AirDropToken {
     function approve(address spender, uint256 amount) public returns (bool success) {
         _allowed[msg.sender][spender] = amount;
 
-        Approval(msg.sender, spender, amount);
+        emit Approval(msg.sender, spender, amount);
 
         return true;
     }
 
-    function redeemed(uint256 index) public constant returns (bool redeemed) {
+    function redeemed(uint256 index) public view returns (bool) {
         uint256 redeemedBlock = _redeemed[index / 256];
         uint256 redeemedMask = (uint256(1) << uint256(index % 256));
         return ((redeemedBlock & redeemedMask) != 0);
     }
 
-    function redeemPackage(uint256 index, address recipient, uint256 amount, bytes32[] merkleProof) public {
+    function redeemPackage(uint256 index, address recipient, uint256 amount, bytes32[] memory merkleProof) public {
 
         // Make sure this package has not already been claimed (and claim it)
         uint256 redeemedBlock = _redeemed[index / 256];
@@ -110,13 +112,13 @@ contract AirDropToken {
         _redeemed[index / 256] = redeemedBlock | redeemedMask;
 
         // Compute the merkle root
-        bytes32 node = keccak256(index, recipient, amount);
+        bytes32 node = keccak256(abi.encodePacked(index, recipient, amount));
         uint256 path = index;
         for (uint16 i = 0; i < merkleProof.length; i++) {
             if ((path & 0x01) == 1) {
-                node = keccak256(merkleProof[i], node);
+                node = keccak256(abi.encodePacked(merkleProof[i], node));
             } else {
-                node = keccak256(node, merkleProof[i]);
+                node = keccak256(abi.encodePacked(node, merkleProof[i]));
             }
             path /= 2;
         }
@@ -128,14 +130,13 @@ contract AirDropToken {
         _balances[recipient] += amount;
         _totalSupply += amount;
 
-        Transfer(0, recipient, amount);
+        emit Transfer(address(0), recipient, amount);
     }
 }
 
 /*
 contract AirDropFactory {
     event Create(address tokenContract);
-
     function createAirDrop(string name, string symbol, uint8 decimals, bytes32 rootHash, uint256 premine) {
         AirDropToken airDropToken = new AirDropToken(name, symbol, decimals, rootHash, premine);
         Create(address(airDropToken));

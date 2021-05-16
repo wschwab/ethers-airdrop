@@ -4,17 +4,16 @@ var fs = require('fs');
 
 var ethers = require('ethers');
 
-var convert = require('ethers/utils/convert');
 function getBlockNumber(blockNumber) {
-    return convert.hexStripZeros(convert.hexlify(blockNumber));
+    return ethers.utils.hexStripZeros(ethers.utils.hexlify(blockNumber));
 }
 
 function now() {
     return (new Date()).getTime() / 1000;
 }
 
-var total = ethers.utils.bigNumberify(0);
-var provider = new ethers.providers.JsonRpcProvider();
+var total = ethers.constants.Zero;
+var provider = await ethers.providers.getDefaultProvider();
 var balances = {};
 
 function getBalances(startBlockNumber, count) {
